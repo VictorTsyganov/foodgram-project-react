@@ -50,7 +50,7 @@ class Subscriptions(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='subscribing',
-        verbose_name='Подписан'
+        verbose_name='На кого подписан'
     )
 
     def __str__(self):

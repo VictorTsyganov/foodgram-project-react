@@ -1,16 +1,17 @@
-from api.permissions import AdminOrReadOnly, AuthorStaffOrReadOnly
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet as DjoserUserViewSet
-from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
-                            ShoppingList, Tag)
-from rest_framework import filters, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                            ShoppingList, Tag)
 from users.models import Subscriptions, User
 
+from .permissions import AuthorOrStaffOrReadOnly
 from .serializers import (FavoriteSerializer, IngredientSerializer,
                           RecipeSerializer, ShoppingListSerializer,
                           SubscriptionsSerializer, TagSerializer)
@@ -25,8 +26,9 @@ class UserViewSet(DjoserUserViewSet):
         permission_classes=(IsAuthenticated, )
     )
     def subscriptions(self, request):
+        user = self.request.user
         pages = self.paginate_queryset(
-            User.objects.filter(subscribing__user=self.request.user)
+            User.objects.filter(subscribing__user=user)
         )
 
         serializer = SubscriptionsSerializer(
@@ -49,7 +51,7 @@ class UserViewSet(DjoserUserViewSet):
             serializer = SubscriptionsSerializer(
                 instance=author, context={'request': request})
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        if request.method == 'DELETE':
+        if request.method == 'DELETE' and serializer.is_valid():
             subscribe = get_object_or_404(
                 Subscriptions, user=user, author=author)
             subscribe.delete()
@@ -60,51 +62,50 @@ class UserViewSet(DjoserUserViewSet):
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = (AdminOrReadOnly, )
     pagination_class = None
-
-
-class CustomSearchFilter(filters.SearchFilter):
-    search_param = 'name'
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    permission_classes = (AdminOrReadOnly, )
     pagination_class = None
-    filter_backends = (CustomSearchFilter, )
-    search_fields = ('^name', )
+
+    def get_queryset(self):
+        params = self.request.query_params
+        if not params or 'name' not in params.keys():
+            return self.queryset
+        queryset = self.queryset.filter(name__istartswith=params['name'])
+        return queryset
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
-    permission_classes = (AuthorStaffOrReadOnly,)
+    permission_classes = (AuthorOrStaffOrReadOnly,)
 
     def get_queryset(self):
         recipes = Recipe.objects.prefetch_related(
-            'tags', 'author'
+            'tags', 'author', 'recipeingredient_set'
         ).all()
         params = self.request.query_params
-        if self.request.method == 'GET':
-            tags = params.getlist('tags')
-            if tags:
-                recipes = recipes.filter(tags__slug__in=tags).distinct()
-            if params.get('author'):
-                author = get_object_or_404(User, id=params.get('author'))
-                recipes = recipes.filter(author=author)
-            if self.request.user.is_authenticated:
-                if params.get('is_favorited'):
-                    favorit_obj = Favorite.objects.filter(
-                        user=self.request.user)
-                    recipes = recipes.filter(
-                        id__in=favorit_obj.values('recipe_id'))
-                if params.get('is_in_shopping_cart'):
-                    shopping_obj = ShoppingList.objects.filter(
-                        user=self.request.user)
-                    recipes = recipes.filter(
-                        id__in=shopping_obj.values('recipe_id'))
+        user = self.request.user
+        if not params:
+            return recipes
+        if 'tags' in params.keys():
+            recipes = recipes.filter(
+                tags__slug__in=params.getlist('tags')).distinct()
+        if 'author' in params.keys():
+            author = get_object_or_404(User, id=params['author'])
+            recipes = recipes.filter(author=author)
+        if self.request.user.is_authenticated:
+            if 'is_favorited' in params.keys():
+                favorit_obj = Favorite.objects.filter(user=user)
+                recipes = recipes.filter(
+                    id__in=favorit_obj.values('recipe_id'))
+            if 'is_in_shopping_cart' in params.keys():
+                shopping_obj = ShoppingList.objects.filter(user=user)
+                recipes = recipes.filter(
+                    id__in=shopping_obj.values('recipe_id'))
         return recipes
 
     @action(
@@ -120,7 +121,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             serializer = FavoriteSerializer(
                 data=request.data, context={'request': request})
             if serializer.is_valid():
-                serializer.save(user=request.user, recipe=recipe)
+                serializer.save(user=user, recipe=recipe)
                 return Response(
                     serializer.data, status=status.HTTP_201_CREATED)
             return Response(
@@ -151,7 +152,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             serializer = ShoppingListSerializer(
                 data=request.data, context={'request': request})
             if serializer.is_valid():
-                serializer.save(user=request.user, recipe=recipe)
+                serializer.save(user=user, recipe=recipe)
                 return Response(
                     serializer.data, status=status.HTTP_201_CREATED)
             return Response(
