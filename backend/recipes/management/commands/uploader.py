@@ -20,7 +20,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        if options["delete_existing"]:
+        if options['delete_existing']:
             Ingredient.objects.all().delete()
             self.stdout.write(self.style.SUCCESS('БД очищена.'))
         else:
