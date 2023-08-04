@@ -10,12 +10,13 @@ from rest_framework.response import Response
 from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
                             ShoppingList, Tag)
 from users.models import Subscriptions, User
+from .filters import FilterIngredient, FilterRecipe
 from .permissions import AuthorOrStaffOrReadOnly
 from .serializers import (CreateRecipeSerializer,
                           FavoriteSerializer, IngredientSerializer,
                           RecipeSerializer, ShoppingListSerializer,
                           SubscriptionsSerializer, TagSerializer)
-from .utils import create_shopping_list, post_delete_func
+from .utils import create_shopping_list, delete_func, post_func
 
 
 class UserViewSet(DjoserUserViewSet):
@@ -48,8 +49,13 @@ class UserViewSet(DjoserUserViewSet):
         serializer = SubscriptionsSerializer(
             data=request.data, context={'request': request})
         flag = True
-        return post_delete_func(
-            request, serializer, user, author, Subscriptions, flag)
+        if request.method == 'POST':
+            return post_func(
+                serializer, user, author, flag)
+        elif request.method == 'DELETE':
+            return delete_func(
+                serializer, user, author, Subscriptions, flag)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
@@ -58,64 +64,12 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
 
-class FilterIngredient(filters.FilterSet):
-    name = filters.CharFilter(
-        field_name='name', lookup_expr='istartswith')
-
-    class Meta:
-        model = Ingredient
-        fields = ['name']
-
-
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     filter_backends = (filters.DjangoFilterBackend,)
     filterset_class = FilterIngredient
     pagination_class = None
-
-
-class FilterRecipe(filters.FilterSet):
-    author = filters.ModelChoiceFilter(
-        field_name='author',
-        queryset=User.objects.all()
-    )
-    tags = filters.ModelMultipleChoiceFilter(
-        field_name='tags__slug',
-        to_field_name='slug',
-        queryset=Tag.objects.all()
-    )
-    is_favorited = filters.BooleanFilter(
-        method='filter_is_favorited'
-    )
-
-    def filter_is_favorited(self, queryset, name, value):
-        user = self.request.user
-        if user.is_authenticated:
-            if name == 'is_favorited' and value is True:
-                favorit_obj = Favorite.objects.filter(user=user)
-                queryset = queryset.filter(
-                    id__in=favorit_obj.values('recipe_id'))
-                return queryset
-        return queryset
-
-    is_in_shopping_cart = filters.BooleanFilter(
-        method='filter_is_in_shopping_cart'
-    )
-
-    def filter_is_in_shopping_cart(self, queryset, name, value):
-        user = self.request.user
-        if user.is_authenticated:
-            if name == 'is_in_shopping_cart' and value is True:
-                shopping_obj = ShoppingList.objects.filter(user=user)
-                queryset = queryset.filter(
-                    id__in=shopping_obj.values('recipe_id'))
-                return queryset
-        return queryset
-
-    class Meta:
-        model = Recipe
-        fields = ['author', 'tags', 'is_favorited', 'is_in_shopping_cart']
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -131,7 +85,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = Recipe.objects.prefetch_related(
-            'tags', 'author', 'recipeingredient_set'
+            'tags', 'recipeingredient_set'
         ).all()
         return queryset
 
@@ -146,8 +100,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
         request.data['id'] = recipe.id
         serializer = FavoriteSerializer(
             data=request.data, context={'request': request})
-        return post_delete_func(
-            request, serializer, user, recipe, Favorite)
+        if request.method == 'POST':
+            return post_func(
+                serializer, user, recipe)
+        elif request.method == 'DELETE':
+            return delete_func(
+                serializer, user, recipe, Favorite)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @action(
         detail=True,
@@ -160,8 +119,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
         request.data['id'] = recipe.id
         serializer = ShoppingListSerializer(
             data=request.data, context={'request': request})
-        return post_delete_func(
-            request, serializer, user, recipe, ShoppingList)
+        if request.method == 'POST':
+            return post_func(
+                serializer, user, recipe)
+        elif request.method == 'DELETE':
+            return delete_func(
+                serializer, user, recipe, ShoppingList)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @action(
         detail=False,

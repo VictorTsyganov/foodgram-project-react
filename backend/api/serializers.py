@@ -58,10 +58,10 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     image = Base64ImageField()
-    tags = TagSerializer(many=True)
+    tags = TagSerializer(many=True, read_only=True)
     author = CustomUserSerializer(read_only=True)
     ingredients = RecipeIngredientSerializer(
-        many=True, source='recipeingredient_set')
+        many=True, source='recipeingredient_set', read_only=True)
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
 
@@ -87,11 +87,20 @@ class RecipeSerializer(serializers.ModelSerializer):
         return user.shopping_list_user.filter(recipe=recipe).exists()
 
 
+class CreateRecipeIngredientSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField()
+    amount = serializers.IntegerField()
+
+    class Meta:
+        model = RecipeIngredient
+        fields = ('id', 'amount')
+
+
 class CreateRecipeSerializer(serializers.ModelSerializer):
     image = Base64ImageField()
     tags = serializers.PrimaryKeyRelatedField(
         many=True, queryset=Tag.objects.all())
-    ingredients = RecipeIngredientSerializer(
+    ingredients = CreateRecipeIngredientSerializer(
         many=True, source='recipeingredient_set')
 
     class Meta:
@@ -100,29 +109,19 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
                   'image', 'text', 'cooking_time')
 
     def validate_ingredients(self, value):
-        request = self.context['request']
-        ingredients = request.data['ingredients']
-        if not value:
-            raise ValidationError('Не указаны ингридиенты')
-        ingredient_list = {}
-        for item in ingredients:
+        for item in value:
             if not Ingredient.objects.filter(pk=item['id']):
-                raise ValidationError('Указан несуществующий ингидиент')
-            ing_obj = Ingredient.objects.get(pk=item['id'])
-            ingredient_list[item['id']] = (ing_obj, item['amount'])
-        return ingredient_list
-
-    def validate(self, data):
-        tags = data['tags']
-        ingredients = data['recipeingredient_set']
-        if not tags or not ingredients:
-            raise serializers.ValidationError(
-                'Недостаточно данных.')
-        return data
+                raise ValidationError('Указан несуществующий ингредиент')
+            if item['amount'] <= 0:
+                raise ValidationError('Указано неверное количество')
+        return value
 
     def ingredients_bulk_create(self, recipe, ingredients):
         ing_objs = []
-        for ingredient, amount in ingredients.values():
+        for item in ingredients:
+            id = item.get('id')
+            amount = item.get('amount')
+            ingredient = get_object_or_404(Ingredient, id=id)
             ing_objs.append(
                 RecipeIngredient(
                     recipe=recipe, ingredient=ingredient, amount=amount
@@ -135,7 +134,8 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         user = request.user
         tags = validated_data.pop('tags')
         ingredients = validated_data.pop('recipeingredient_set')
-        recipe = Recipe.objects.create(author=user, **validated_data)
+        validated_data['author'] = user
+        recipe = super().create(validated_data)
         recipe.tags.set(tags)
         self.ingredients_bulk_create(recipe, ingredients)
         return recipe
@@ -154,6 +154,13 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+    def to_representation(self, value):
+        request = self.context['request']
+        return RecipeSerializer(
+            value,
+            context={'request': request}
+        ).data
 
 
 class ShortRecipeSerializer(serializers.ModelSerializer):

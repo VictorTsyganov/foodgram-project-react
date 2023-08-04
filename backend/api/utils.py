@@ -23,27 +23,23 @@ def create_shopping_list(user, ingredients):
     return response
 
 
-def post_delete_func(request, serializer, user, object, ClassObj, flag=False):
-    if request.method == 'POST':
-        if serializer.is_valid():
-            if flag:
-                serializer.save(user=user, author=object)
-            else:
-                serializer.save(user=user, recipe=object)
-            return Response(
-                serializer.data, status=status.HTTP_201_CREATED)
-        return Response(
-            serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    elif request.method == 'DELETE':
-        if serializer.is_valid():
-            if flag:
-                obj_for_del = get_object_or_404(
-                    ClassObj, author=object, user=user)
-            else:
-                obj_for_del = get_object_or_404(
-                    ClassObj, recipe=object, user=user)
-            obj_for_del.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        return Response(
-            serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    return Response(status=status.HTTP_400_BAD_REQUEST)
+def post_func(serializer, user, object, flag=False):
+    serializer.is_valid(raise_exception=True)
+    if flag:
+        serializer.save(user=user, author=object)
+    else:
+        serializer.save(user=user, recipe=object)
+    return Response(
+        serializer.data, status=status.HTTP_201_CREATED)
+
+
+def delete_func(serializer, user, object, сlass_obj, flag=False):
+    serializer.is_valid(raise_exception=True)
+    if flag:
+        obj_for_del = get_object_or_404(
+            сlass_obj, author=object, user=user)
+    else:
+        obj_for_del = get_object_or_404(
+            сlass_obj, recipe=object, user=user)
+    obj_for_del.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
