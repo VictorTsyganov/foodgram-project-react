@@ -48,13 +48,12 @@ class UserViewSet(DjoserUserViewSet):
         request.data['id'] = id
         serializer = SubscriptionsSerializer(
             data=request.data, context={'request': request})
-        flag = True
         if request.method == 'POST':
             return post_func(
-                serializer, user, author, flag)
+                serializer, user=user, author=author)
         elif request.method == 'DELETE':
             return delete_func(
-                serializer, user, author, Subscriptions, flag)
+                serializer, Subscriptions, user=user, author=author)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -102,10 +101,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
             data=request.data, context={'request': request})
         if request.method == 'POST':
             return post_func(
-                serializer, user, recipe)
+                serializer, user=user, recipe=recipe)
         elif request.method == 'DELETE':
             return delete_func(
-                serializer, user, recipe, Favorite)
+                serializer, Favorite, user=user, recipe=recipe)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @action(
@@ -121,10 +120,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
             data=request.data, context={'request': request})
         if request.method == 'POST':
             return post_func(
-                serializer, user, recipe)
+                serializer, user=user, recipe=recipe)
         elif request.method == 'DELETE':
             return delete_func(
-                serializer, user, recipe, ShoppingList)
+                serializer, ShoppingList, user=user, recipe=recipe)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
     @action(

@@ -11,9 +11,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-=n%q%rx*g%d(6nlgotjt%#$uacoqd=1xwnc$kp7ed@+0u15eid')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['foodgramwictor.hopto.org', '158.160.21.42', '127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -72,14 +72,12 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-        # 'ENGINE': 'django.db.backends.postgresql',
-        # 'NAME': os.getenv('POSTGRES_DB', 'django'),
-        # 'USER': os.getenv('POSTGRES_USER', 'django'),
-        # 'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
-        # 'HOST': os.getenv('DB_HOST', ''),
-        # 'PORT': os.getenv('DB_PORT', 5432)
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB', 'django'),
+        'USER': os.getenv('POSTGRES_USER', 'django'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', ''),
+        'PORT': os.getenv('DB_PORT', 5432)
     }
 }
 

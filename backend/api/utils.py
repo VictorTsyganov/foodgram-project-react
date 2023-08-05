@@ -23,23 +23,15 @@ def create_shopping_list(user, ingredients):
     return response
 
 
-def post_func(serializer, user, object, flag=False):
+def post_func(serializer, **kwargs):
     serializer.is_valid(raise_exception=True)
-    if flag:
-        serializer.save(user=user, author=object)
-    else:
-        serializer.save(user=user, recipe=object)
+    serializer.save(**kwargs)
     return Response(
         serializer.data, status=status.HTTP_201_CREATED)
 
 
-def delete_func(serializer, user, object, сlass_obj, flag=False):
+def delete_func(serializer, сlass_obj, **kwargs):
     serializer.is_valid(raise_exception=True)
-    if flag:
-        obj_for_del = get_object_or_404(
-            сlass_obj, author=object, user=user)
-    else:
-        obj_for_del = get_object_or_404(
-            сlass_obj, recipe=object, user=user)
+    obj_for_del = get_object_or_404(сlass_obj, **kwargs)
     obj_for_del.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)

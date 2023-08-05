@@ -131,10 +131,9 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         request = self.context['request']
-        user = request.user
         tags = validated_data.pop('tags')
         ingredients = validated_data.pop('recipeingredient_set')
-        validated_data['author'] = user
+        validated_data['author'] = request.user
         recipe = super().create(validated_data)
         recipe.tags.set(tags)
         self.ingredients_bulk_create(recipe, ingredients)
@@ -210,8 +209,7 @@ class SubscriptionsSerializer(serializers.ModelSerializer):
 
     def get_is_subscribed(self, obj):
         request = self.context['request']
-        user = request.user
-        if not user.is_authenticated or not obj:
+        if not request.user.is_authenticated or not obj:
             return False
         return True
 
