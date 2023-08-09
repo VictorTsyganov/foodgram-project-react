@@ -107,16 +107,17 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
         fields = ('tags', 'ingredients', 'name',
                   'image', 'text', 'cooking_time')
 
-    def validate_ingredients(self, value):
+    def validate(self, data):
         ingredients_list = []
-        for item in value:
+        for item in data.get('recipeingredient_set'):
             if item['id'] in ingredients_list:
                 raise serializers.ValidationError(
                     'Нельзя указывать один ингредиент несколько раз')
+            ingredients_list.append(item['id'])
             if item['amount'] <= 0:
                 raise serializers.ValidationError(
                     'Не верно указано количество')
-        return value
+        return data
 
     def ingredients_bulk_create(self, recipe, ingredients):
         ing_objs = []
