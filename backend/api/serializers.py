@@ -1,4 +1,3 @@
-from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from drf_base64.fields import Base64ImageField
@@ -109,11 +108,14 @@ class CreateRecipeSerializer(serializers.ModelSerializer):
                   'image', 'text', 'cooking_time')
 
     def validate_ingredients(self, value):
+        ingredients_list = []
         for item in value:
-            if not Ingredient.objects.filter(pk=item['id']):
-                raise ValidationError('Указан несуществующий ингредиент')
+            if item['id'] in ingredients_list:
+                raise serializers.ValidationError(
+                    'Нельзя указывать один ингредиент несколько раз')
             if item['amount'] <= 0:
-                raise ValidationError('Указано неверное количество')
+                raise serializers.ValidationError(
+                    'Не верно указано количество')
         return value
 
     def ingredients_bulk_create(self, recipe, ingredients):

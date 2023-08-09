@@ -47,6 +47,12 @@ docker-compose exec backend python manage.py collectstatic
 
 ```
 
+Скопировать статику в вольюм:
+
+```
+docker compose exec backend cp -r /app/static_backend/. /static_backend/
+```
+
 Проверить работу проекта возможно по любой из ссылок:
 
 ```
