@@ -47,6 +47,7 @@ docker compose exec backend cp -r /app/static_backend/. /static_backend/
 
 ```
 http://localhost/
+
 http://127.0.0.1/
 ```
 
@@ -54,6 +55,7 @@ http://127.0.0.1/
 
 ```
 http://localhost/api/docs/
+
 http://127.0.0.1/api/docs/ 
 ```
 
@@ -97,6 +99,7 @@ http://127.0.0.1/api/docs/
 
 ```
 http://localhost:8000/
+
 http://127.0.0.1:8000/
 ```
 
@@ -104,6 +107,7 @@ http://127.0.0.1:8000/
 
 ```
 http://localhost/api/docs/
+
 http://127.0.0.1/api/docs/ 
 ```
 
@@ -112,7 +116,7 @@ http://127.0.0.1/api/docs/
 * Для удаления имеющихся записей из базы данных, необходимо в командной строке, из дериктории, в которой находится файл manage.py, запустить команду *python manage.py uploader --delete-existing*.
 * Для справки - *python manage.py uploader -h или --help*.
 * Для загрузки данных из csv файлов в базу данных, необходимо в командной строке, из дериктории, в которой находится файл manage.py, запустить команду *python manage.py uploader*.
-* При возникновении ошибок, данные о них будут отражены в терминале.
+* При возникновении ошибок, данные о них будут отражены в терминале. 
 
 ## Функционал
 
@@ -135,6 +139,7 @@ http://127.0.0.1/api/docs/
 ```python
 # Документаия проекта
 http://localhost/api/docs/
+
 http://127.0.0.1/api/docs/ 
 ```
 
